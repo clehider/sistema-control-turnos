@@ -2,11 +2,9 @@
 const nextConfig = {
   output: 'export',
   images: {
-    unoptimized: true
+    unoptimized: true,
   },
-  typescript: {
-    ignoreBuildErrors: true
-  }
+  // Removemos la sección experimental y rewrites
 }
 
 module.exports = nextConfig

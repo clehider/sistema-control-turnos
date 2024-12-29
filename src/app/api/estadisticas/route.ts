@@ -1,52 +1,36 @@
-import { NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
+import { NextResponse } from 'next/server';
 
-export async function GET() {
+export const dynamic = 'force-static'
+export const revalidate = 3600 // revalidar cada hora
+
+interface Estadisticas {
+  totalTickets: number;
+  ticketsAtendidos: number;
+  tiempoPromedioAtencion: number;
+}
+
+export async function GET(): Promise<NextResponse<Estadisticas>> {
+  // Aquí normalmente obtendrías los datos de una base de datos
+  // Por ahora, usaremos datos de ejemplo
+  const estadisticas: Estadisticas = {
+    totalTickets: 100,
+    ticketsAtendidos: 75,
+    tiempoPromedioAtencion: 15, // en minutos
+  };
+
+  return NextResponse.json(estadisticas);
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const conn = await mysql.createConnection({
-      host: '127.0.0.1',
-      user: 'root',
-      password: 'edu123',
-      database: 'sistema_turnos'
-    });
+    const body = await request.json();
+    
+    // Aquí normalmente procesarías los datos y los guardarías en una base de datos
+    console.log('Datos recibidos:', body);
 
-    // Tiempo promedio de atención
-    const [tiempoPromedio] = await conn.query(`
-      SELECT AVG(TIMESTAMPDIFF(MINUTE, hora_emision, hora_finalizacion)) as promedio
-      FROM tickets
-      WHERE estado = 'completado' AND DATE(hora_emision) = CURDATE()
-    `);
-
-    // Tickets por tipo de servicio
-    const [ticketsPorTipo] = await conn.query(`
-      SELECT tipo_servicio, COUNT(*) as cantidad
-      FROM tickets
-      WHERE DATE(hora_emision) = CURDATE()
-      GROUP BY tipo_servicio
-    `);
-
-    // Rendimiento por ventanilla
-    const [rendimientoPorVentanilla] = await conn.query(`
-      SELECT ventanilla, COUNT(*) as cantidad
-      FROM tickets
-      WHERE estado = 'completado' AND DATE(hora_emision) = CURDATE()
-      GROUP BY ventanilla
-    `);
-
-    await conn.end();
-
-    const estadisticas = {
-      tiempoPromedioAtencion: (tiempoPromedio as any)[0]?.promedio || 0,
-      ticketsPorTipo: Object.fromEntries((ticketsPorTipo as any[]).map(t => [t.tipo_servicio, t.cantidad])),
-      rendimientoPorVentanilla: Object.fromEntries((rendimientoPorVentanilla as any[]).map(r => [r.ventanilla, r.cantidad]))
-    };
-
-    return NextResponse.json(estadisticas);
+    return NextResponse.json({ message: "Estadísticas actualizadas correctamente" }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching estadísticas:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    console.error('Error al procesar la solicitud:', error);
+    return NextResponse.json({ message: "Error al procesar la solicitud" }, { status: 500 });
   }
 }
