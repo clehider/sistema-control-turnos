@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import mysql from 'mysql2/promise'
+import { db } from '@/lib/firebase-admin'
+import { FieldValue } from 'firebase-admin/firestore'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { ticket_id } = body
+    const { ticket_id } = await request.json()
 
     if (!ticket_id) {
       return NextResponse.json(
@@ -13,34 +13,27 @@ export async function POST(request: Request) {
       )
     }
 
-    const conn = await mysql.createConnection({
-      host: '127.0.0.1',
-      user: 'root',
-      password: 'edu123',
-      database: 'sistema_turnos'
-    });
+    const ticketRef = db.collection('tickets').doc(ticket_id)
+    const ticket = await ticketRef.get()
 
-    try {
-      await conn.beginTransaction()
-
-      await conn.query(
-        'UPDATE tickets SET estado = ?, hora_finalizacion = NOW() WHERE id = ?',
-        ['completado', ticket_id]
+    if (!ticket.exists) {
+      return NextResponse.json(
+        { success: false, error: 'Ticket no encontrado' },
+        { status: 404 }
       )
-
-      await conn.commit()
-
-      return NextResponse.json({
-        success: true
-      })
-    } catch (error) {
-      await conn.rollback()
-      throw error
-    } finally {
-      await conn.end()
     }
+
+    await ticketRef.update({
+      estado: 'completado',
+      hora_finalizacion: FieldValue.serverTimestamp()
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Ticket finalizado correctamente'
+    })
   } catch (error) {
-    console.error('Error finalizing ticket:', error)
+    console.error('Error finalizando ticket:', error)
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
