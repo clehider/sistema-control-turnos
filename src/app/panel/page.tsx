@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
+
 const tiposServicio: { [key: string]: string } = {
   'A': 'Atención General',
   'B': 'Servicios Empresariales',
