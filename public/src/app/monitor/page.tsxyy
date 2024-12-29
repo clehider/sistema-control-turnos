@@ -1,0 +1,210 @@
+'use client'
+
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Volume2, VolumeX } from 'lucide-react'
+
+interface Ticket {
+  id: string;
+  numero: string;
+  tipo_servicio: string;
+  estado: string;
+  ventanilla: number | null;
+}
+
+export default function MonitorPage() {
+  const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
+  const [waitingTickets, setWaitingTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const lastTicketIdRef = useRef<string | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const playNotificationSound = useCallback(() => {
+    if (soundEnabled) {
+      try {
+        // Crear un nuevo contexto de audio si no existe
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+
+        const context = audioContextRef.current;
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 440; // Nota A4
+
+        gainNode.gain.setValueAtTime(0.1, context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.5);
+
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + 0.5);
+
+        // Limpiar las conexiones después de reproducir
+        setTimeout(() => {
+          gainNode.disconnect();
+          oscillator.disconnect();
+        }, 1000);
+      } catch (error) {
+        console.error('Error playing sound:', error);
+      }
+    }
+  }, [soundEnabled]);
+
+  const toggleSound = async () => {
+    try {
+      if (!soundEnabled) {
+        // Inicializar el contexto de audio con interacción del usuario
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = context;
+        
+        // Reproducir un sonido de prueba muy corto
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        oscillator.frequency.value = 440;
+        gainNode.gain.setValueAtTime(0.1, context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1);
+        
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + 0.1);
+        
+        setSoundEnabled(true);
+      } else {
+        if (audioContextRef.current) {
+          await audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        setSoundEnabled(false);
+      }
+    } catch (error) {
+      console.error('Error toggling sound:', error);
+    }
+  };
+
+  const fetchTickets = useCallback(async () => {
+    try {
+      const response = await fetch('/api/tickets');
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      
+      const current = data.find((t: Ticket) => t.estado === 'en_atencion');
+      const waiting = data.filter((t: Ticket) => t.estado === 'espera');
+      
+      if (current && (!lastTicketIdRef.current || current.id !== lastTicketIdRef.current)) {
+        lastTicketIdRef.current = current.id;
+        setCurrentTicket(current);
+        playNotificationSound();
+      } else if (!current) {
+        lastTicketIdRef.current = null;
+        setCurrentTicket(null);
+      }
+      
+      setWaitingTickets(waiting);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playNotificationSound]);
+
+  useEffect(() => {
+    fetchTickets();
+    const interval = setInterval(fetchTickets, 5000);
+    return () => {
+      clearInterval(interval);
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(console.error);
+      }
+    };
+  }, [fetchTickets]);
+
+  const getTipoServicio = (tipo: string) => {
+    const tipos = {
+      'A': 'Atención General',
+      'B': 'Servicios Empresariales',
+      'C': 'Clientes Preferenciales',
+      'P': 'Atención Prioritaria'
+    };
+    return tipos[tipo as keyof typeof tipos] || tipo;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg">Cargando...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Monitor de Tickets</h1>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleSound}
+          className="ml-4"
+          title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+        >
+          {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+          <CardHeader>
+            <CardTitle className="text-2xl">Ticket en Atención</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {currentTicket ? (
+              <div className="text-center space-y-4">
+                <div className="text-4xl font-bold">{currentTicket.numero}</div>
+                <div className="text-xl">{getTipoServicio(currentTicket.tipo_servicio)}</div>
+                <div className="text-2xl">Ventanilla {currentTicket.ventanilla}</div>
+              </div>
+            ) : (
+              <p className="text-center text-gray-500">No hay tickets en atención</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Tickets en Espera</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {waitingTickets.length > 0 ? (
+                waitingTickets.map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center"
+                  >
+                    <span className="font-medium">{ticket.numero}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      {getTipoServicio(ticket.tipo_servicio)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500">No hay tickets en espera</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
