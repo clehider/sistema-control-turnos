@@ -1,16 +1,21 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
-const firebaseAdminConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+if (!process.env.FIREBASE_PROJECT_ID) {
+  throw new Error('FIREBASE_PROJECT_ID is not set in environment variables')
 }
 
-export const app = getApps().length === 0 
-  ? initializeApp({
-      credential: cert(firebaseAdminConfig),
-    })
+const firebaseAdminConfig = {
+  credential: cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  }),
+  projectId: process.env.FIREBASE_PROJECT_ID
+}
+
+const app = getApps().length === 0 
+  ? initializeApp(firebaseAdminConfig)
   : getApps()[0]
 
 export const db = getFirestore(app)
