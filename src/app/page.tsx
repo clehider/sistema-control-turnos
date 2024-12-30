@@ -1,17 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { TicketGenerator } from '@/components/TicketGenerator'
 import { TicketDisplay } from '@/components/TicketDisplay'
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
 
 export default function Home() {
-  const handleTicketGenerated = (ticketId: string, ticketNumber: string) => {
-    console.log('Ticket generado:', ticketId, ticketNumber)
-    toast({
-      title: "Ticket generado",
-      description: `Número de ticket: ${ticketNumber}`,
-    })
+  const [lastGeneratedTicket, setLastGeneratedTicket] = useState<string | null>(null)
+
+  const handleTicketGenerated = (ticketNumber: string) => {
+    setLastGeneratedTicket(ticketNumber)
   }
 
   return (
@@ -19,9 +16,8 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-6 text-center">Sistema de Control de Turnos</h1>
       <TicketGenerator onTicketGenerated={handleTicketGenerated} />
       <div className="mt-8">
-        <TicketDisplay />
+        <TicketDisplay lastTicket={lastGeneratedTicket} />
       </div>
-      <Toaster />
     </main>
   )
 }

@@ -121,7 +121,7 @@ export function TicketGenerator({ onTicketGenerated }: TicketGeneratorProps) {
         } catch (printError) {
           console.error('Error al imprimir:', printError);
           toast({
-            variant: "warning",
+          variant: "destructive",
             description: "Ticket generado pero hubo un error al imprimir",
           });
         }

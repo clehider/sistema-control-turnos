@@ -1,47 +1,28 @@
-import mysql from 'serverless-mysql'
+import mysql from 'serverless-mysql';
 
 export class SistemaTurnos {
-  private conn: ReturnType<typeof mysql>
+  private conn: ReturnType<typeof mysql>;
 
-  constructor(host: string, user: string, password: string, database: string) {
+  constructor() {
     this.conn = mysql({
       config: {
-        host,
-        user,
-        password,
-        database,
-      },
-    })
+        host: process.env.MYSQL_HOST,
+        port: parseInt(process.env.MYSQL_PORT || '3306'),
+        database: process.env.MYSQL_DATABASE,
+        user: process.env.MYSQL_USER,
+        password: process.env.MYSQL_PASSWORD
+      }
+    });
   }
 
-  async generarTicket(tipoServicio: string): Promise<string> {
-    try {
-      await this.conn.query('START TRANSACTION')
+  // Aquí puedes agregar métodos para interactuar con la base de datos
+  // Por ejemplo:
+  async generarTicket(): Promise<string> {
+    // Implementa la lógica para generar un nuevo ticket
+    return 'T001'; // Esto es solo un ejemplo
+  }
 
-      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-      const [maxNumResult] = await this.conn.query(
-        'SELECT MAX(CAST(numero AS UNSIGNED)) as max_num FROM tickets WHERE DATE(hora_emision) = CURDATE() AND tipo_servicio = ?',
-        [tipoServicio]
-      )
-
-      const maxNum = maxNumResult.max_num || 0
-      const numero = String(maxNum + 1).padStart(4, '0')
-      const id = `${fecha}${tipoServicio}${numero}`
-
-      await this.conn.query(
-        'INSERT INTO tickets (id, numero, tipo_servicio, hora_emision, estado) VALUES (?, ?, ?, NOW(), ?)',
-        [id, numero, tipoServicio, 'espera']
-      )
-
-      await this.conn.query('COMMIT')
-      console.log(`Ticket generado exitosamente: ${id}`)
-      return id
-    } catch (error) {
-      await this.conn.query('ROLLBACK')
-      console.error('Error generando ticket:', error)
-      throw error
-    } finally {
-      await this.conn.end()
-    }
+  async cerrarConexion() {
+    await this.conn.end();
   }
 }

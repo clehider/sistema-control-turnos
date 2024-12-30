@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/firebase-admin'
+
 export const dynamic = 'force-static'
-export const revalidate = 3600 // revalidar cada hora, ajusta según tus necesidades
+export const revalidate = 3600 // revalidar cada hora
 
 export async function GET() {
   try {
@@ -9,6 +10,7 @@ export async function GET() {
     const snapshot = await ticketsRef
       .where('estado', 'in', ['espera', 'en_atencion'])
       .orderBy('hora_emision', 'asc')
+      .orderBy('__name__', 'asc') // Agregamos esto para coincidir con el índice compuesto
       .get()
 
     const tickets = snapshot.docs.map(doc => ({
