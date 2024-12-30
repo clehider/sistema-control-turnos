@@ -14,12 +14,11 @@ if (!admin.apps.length) {
     });
   } catch (error) {
     console.error('Error initializing Firebase Admin:', error);
-    throw error; // Re-throw the error to prevent the app from continuing with an uninitialized Firebase
+    throw error;
   }
 }
 
-// Get Firestore instance
-const db = admin.apps.length ? admin.firestore() : null;
+const db = admin.firestore();
 
 if (!db) {
   throw new Error('Firestore is not initialized');
