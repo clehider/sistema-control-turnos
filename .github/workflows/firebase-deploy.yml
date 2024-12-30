@@ -19,33 +19,13 @@ jobs:
           node-version: '18'
           
       - name: Install Dependencies
-        run: npm ci
-        
-      - name: Create Firebase Config
-        run: |
-          echo '{
-            "hosting": {
-              "public": ".next",
-              "ignore": [
-                "firebase.json",
-                "**/.*",
-                "**/node_modules/**"
-              ],
-              "rewrites": [
-                {
-                  "source": "**",
-                  "destination": "/index.html"
-                }
-              ]
-            }
-          }' > firebase.json
+        run: npm install
         
       - name: Build
         env:
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          PORT: 3003
         run: npm run build
         
       - name: Deploy to Firebase
