@@ -13,8 +13,21 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
+      - name: Set up environment variables
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+        run: |
+          echo "FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID" >> $GITHUB_ENV
+          echo "FIREBASE_CLIENT_EMAIL=$FIREBASE_CLIENT_EMAIL" >> $GITHUB_ENV
+          echo "FIREBASE_PRIVATE_KEY=$FIREBASE_PRIVATE_KEY" >> $GITHUB_ENV
       - run: npm ci
       - run: npm run build
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
