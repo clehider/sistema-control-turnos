@@ -16,3 +16,6 @@ Sistema de gestión de turnos desarrollado con Next.js y MySQL.
 - MySQL
 - Tailwind CSS
 - Web Audio API
+
+## Despliegue
+Este proyecto se despliega automáticamente en Firebase Hosting mediante GitHub Actions.
