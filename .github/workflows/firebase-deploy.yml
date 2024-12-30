@@ -8,6 +8,8 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    env:
+      PORT: 3003
     steps:
       - uses: actions/checkout@v3
       
@@ -23,11 +25,17 @@ jobs:
         run: |
           echo '{
             "hosting": {
-              "public": ".next/standalone",
+              "public": ".next",
               "ignore": [
                 "firebase.json",
                 "**/.*",
                 "**/node_modules/**"
+              ],
+              "rewrites": [
+                {
+                  "source": "**",
+                  "destination": "/index.html"
+                }
               ]
             }
           }' > firebase.json
@@ -37,6 +45,7 @@ jobs:
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          PORT: 3003
         run: npm run build
         
       - name: Deploy to Firebase
