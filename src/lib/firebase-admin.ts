@@ -1,21 +1,27 @@
-import { initializeApp, getApps, cert } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
+import * as admin from 'firebase-admin';
 
-if (!process.env.FIREBASE_PROJECT_ID) {
-  throw new Error('FIREBASE_PROJECT_ID is not set in environment variables')
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'sistematurnos-733c7',
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || 'firebase-adminsdk-2jbhk@sistematurnos-733c7.iam.gserviceaccount.com',
+        privateKey: process.env.FIREBASE_PRIVATE_KEY 
+          ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+          : undefined,
+      }),
+      databaseURL: `https://sistematurnos-733c7.firebaseio.com`
+    });
+  } catch (error) {
+    console.error('Error initializing Firebase Admin:', error);
+  }
 }
 
-const firebaseAdminConfig = {
-  credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-  }),
-  projectId: process.env.FIREBASE_PROJECT_ID
+const db = admin.apps.length ? admin.firestore() : null;
+
+if (!db) {
+  console.error('Firestore is not initialized');
 }
 
-const app = getApps().length === 0 
-  ? initializeApp(firebaseAdminConfig)
-  : getApps()[0]
-
-export const db = getFirestore(app)
+export { db };
+export default admin;
