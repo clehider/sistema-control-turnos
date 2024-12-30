@@ -1,51 +1,36 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/firebase-admin'
-import { FieldValue } from 'firebase-admin/firestore'
 
-export async function POST(request: Request) {
+export const dynamic = 'force-static'
+export const revalidate = 3600 // revalidar cada hora
+
+export async function POST() {
   try {
-    const { tipo_servicio } = await request.json()
-
-    if (!tipo_servicio || !['A', 'B', 'C', 'P'].includes(tipo_servicio)) {
-      return NextResponse.json(
-        { success: false, error: 'Tipo de servicio inválido' },
-        { status: 400 }
-      )
-    }
-
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
     const ticketsRef = db.collection('tickets')
-    const snapshot = await ticketsRef
-      .where('fecha', '>=', today)
-      .where('tipo_servicio', '==', tipo_servicio)
-      .orderBy('fecha', 'desc')
-      .limit(1)
-      .get()
-
-    const lastNum = snapshot.empty ? 0 : parseInt(snapshot.docs[0].data().numero)
-    const newNum = (lastNum + 1).toString().padStart(4, '0')
     
-    const ticketData = {
-      numero: newNum,
-      tipo_servicio,
+    // Generar número de ticket
+    const fecha = new Date()
+    const numeroTicket = `T${fecha.getFullYear()}${(fecha.getMonth() + 1).toString().padStart(2, '0')}${fecha.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+    
+    // Crear nuevo ticket
+    const nuevoTicket = {
+      numero: numeroTicket,
       estado: 'espera',
-      hora_emision: FieldValue.serverTimestamp(),
-      fecha: new Date(),
+      hora_emision: fecha.toISOString(),
+      hora_atencion: null,
+      hora_finalizacion: null
     }
 
-    const docRef = await ticketsRef.add(ticketData)
+    await ticketsRef.doc(numeroTicket).set(nuevoTicket)
 
-    return NextResponse.json({
-      success: true,
-      ticket_id: docRef.id,
-      numero: newNum
+    return NextResponse.json({ 
+      success: true, 
+      ticket: nuevoTicket 
     })
   } catch (error) {
-    console.error('Error generating ticket:', error)
+    console.error('Error al generar ticket:', error)
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     )
   }
